@@ -8,7 +8,7 @@
 */
 
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import { Linking, ActivityIndicator, StyleSheet, Text, View, Image, SafeAreaView, Dimensions, FlatList, TouchableOpacity } from 'react-native';
 import { Images, Colors } from './App/Themes'
 import APIRequest from './App/Config/APIRequest'
 
@@ -25,9 +25,11 @@ export default class App extends React.Component {
   }
 
   componentDidMount() {
+    this.loadArticles();
+  }
 
-    //uncomment this to run an API query!
-    //this.loadArticles();
+  keyExtractor = index => {
+    return this.state.articles[index].url;
   }
 
   async loadArticles(searchTerm = '', category = '') {
@@ -42,19 +44,68 @@ export default class App extends React.Component {
     this.setState({loading: false, articles: resultArticles})
   }
 
+  searchForArticles = (searchTerm) => {
+    this.loadArticles(searchTerm=searchTerm);
+  }  
+
+  goToArticle = item => {
+    Linking.openURL(item.url).catch((err) => console.error('An error occurred', err));
+  }
+
+  // renderArticle = (index, item) => (
+  //   <TouchableOpacity onPress={() => this.goToArticle(item)}>
+  //       <View style={styles.article}>
+  //     <Text style={{fontSize: 24}}>{item.title}</Text>
+  //     <Text>{item.snippet}</Text>
+  //     <Text style={{fontWeight: 'bold'}}>{item.byline}</Text>
+  //     <Text style={{color: 'gray'}}>{item.date}</Text>
+  //     </View>
+  //   </TouchableOpacity>
+  // )
+
+  renderArticle = (index, item) => {
+    return (
+      <TouchableOpacity onPress={() => this.goToArticle(item)}>
+          <View style={styles.article}>
+        <Text style={{fontSize: 24}}>{item.title}</Text>
+        <Text>{item.snippet}</Text>
+        <Text style={{fontWeight: 'bold'}}>{item.byline}</Text>
+        <Text style={{color: 'gray'}}>{item.date}</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  }
+
   render() {
     const {articles, loading} = this.state;
+    
+    let contentDisplayed = null;
+
+    if (loading) {
+      contentDisplayed = <ActivityIndicator style={styles.loading}/>
+    } else {
+      contentDisplayed = <FlatList
+                            data={this.state.articles} style={styles.list}
+                            // We encapsulated the code for renderItem into renderTodo.
+                            renderItem={({ index, item }) => this.renderArticle(index, item)}
+                            keyExtractor={(item, index) => this.keyExtractor(index)}
+                          />
+    }
 
     return (
       <SafeAreaView style={styles.container}>
 
-        <Text style={{textAlign: 'center'}}>Have fun! :) {"\n"} Start by changing the API Key in "./App/Config/AppConfig.js" {"\n"} Then, take a look at the following components: {"\n"} NavigationButtons {"\n"} Search {"\n"} News {"\n"} 🔥</Text>
-
         {/*First, you'll need a logo*/}
+        <Image style={styles.logo}
+               source={Images.logo}/>
 
         {/*Then your search bar*/}
+        <Search searchText = {this.state.searchText}
+                searchForArticles = {this.searchForArticles}/>
 
         {/*And some news*/}
+        
+        {contentDisplayed}
 
         {/*Though, you can style and organize these however you want! power to you 😎*/}
 
@@ -68,8 +119,34 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'column',
     backgroundColor: '#fff',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center'
+  },
+  textinput: {
+    height: 40,
+    width: '80%',
+    borderColor: 'gray',
+    borderWidth: 1
+  },
+  logo: {
+    width: '90%',
+    resizeMode: 'contain',
+    height: '12%',
+  },
+  list: {
+    marginTop: 10,
+  },
+  article: {
+    width: '100%',
+    paddingTop: 15,
+    paddingLeft: 15,
+    paddingRight: 15
+  },
+  loading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: (3/10) * Dimensions.get('window').height 
   }
 });
